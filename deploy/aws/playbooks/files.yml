@@ -1,0 +1,19 @@
+---
+- name: files
+  hosts: files
+  become: true
+  vars:
+    ufw_rules:
+      - { port: 22, from: "10.10.0.0/16", comment: 'ssh' }
+
+  roles:
+    - "common/apt"
+    - "common/ssh"
+    - "common/ufw"
+    - "common/hosts"
+    - "common/timezone"
+    - "common/motd"
+    - "common/users"
+    - "common/essentials"
+    - "common/docker"
+    - "grafana/alloy"

@@ -1,0 +1,6 @@
+X11Forwarding no
+IgnoreRhosts yes
+MaxAuthTries 3
+PasswordAuthentication no
+PubkeyAuthentication yes
+PermitRootLogin no

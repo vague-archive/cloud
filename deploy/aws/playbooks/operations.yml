@@ -1,0 +1,19 @@
+---
+- name: operations
+  hosts: operations
+  become: true
+  vars:
+    ufw_rules:
+      - { port: 22, from: 'any', comment: 'ssh' }
+
+  roles:
+    - "common/apt"
+    - "common/ssh"
+    - "common/ufw"
+    - "common/hosts"
+    - "common/timezone"
+    - "common/motd"
+    - "common/users"
+    - "common/essentials"
+    - "common/docker"
+    - "grafana/alloy"

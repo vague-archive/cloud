@@ -1,0 +1,99 @@
+service: cloud
+image: vaguevoid/cloud
+
+# CUTOVER TODO - final changes required (grep for cloud-aws)
+#  - PAPERTRAIL_APP
+
+env:
+  clear:
+    URL_SCHEME: https
+    URL_HOST: play.void.dev
+    URL_PORT: 443
+    TRUST_PROXY_HEADERS: true
+    FILESTORE_URL: http://10.10.10.200/
+    FILESTORE_BUCKET: "void-cloud"
+    AWS_REGION: "us-west-2"
+    MAILER_ENABLED: true
+    LOG_COLORIZED: false
+    PAPERTRAIL_APP: "void-cloud-aws"
+    WAF: true
+  secret:
+    - ENCRYPT_KEY
+    - SIGNING_KEY
+    - DATABASE_URL
+    - REDIS_CACHE_URL
+    - REDIS_WORKERS_URL
+    - GITHUB_ACCESS_TOKEN
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_KEY
+    - POSTMARK_API_TOKEN
+    - PAPERTRAIL_TOKEN
+
+servers:
+  web:
+    hosts:
+      - web1
+      - web2
+    cmd: "cmd/web.ts"
+    proxy:
+      ssl: false
+      app_port: 3000
+      buffering:
+        requests: false
+        responses: false
+      healthcheck:
+        path: /ping
+    env:
+      clear:
+        HOST: 0.0.0.0
+        PORT: 3000
+      secret:
+        - GITHUB_CLIENT_ID
+        - GITHUB_CLIENT_SECRET
+        - DISCORD_CLIENT_ID
+        - DISCORD_CLIENT_SECRET
+  minions:
+    hosts:
+      - web1
+      - web2
+    cmd: "cmd/minions.ts"
+    proxy: false
+  files:
+    hosts:
+      - files
+    cmd: "cmd/files.ts"
+    proxy:
+      ssl: false
+      app_port: 3000
+      buffering:
+        requests: false
+        responses: false
+      healthcheck:
+        path: /ping
+    env:
+      clear:
+        FILESTORE_HOST: 0.0.0.0
+        FILESTORE_PORT: 3000
+        FILESTORE_ROOT: "/files"
+
+logging:
+  driver: syslog
+
+# UGH. Kamal doesn't have per role volumes - this *should* be declared under servers/files, 
+# but I guess I have to put it here for now
+volumes:
+  - "/files:/files:rw"
+
+ssh:
+  user: deploy
+  proxy: deploy@ops.play.void.dev
+
+registry:
+  server: ghcr.io
+  username:
+    - DOCKER_REGISTRY_TOKEN
+  password:
+    - DOCKER_REGISTRY_TOKEN
+
+builder:
+  arch: amd64

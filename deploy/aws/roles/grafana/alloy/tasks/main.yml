@@ -1,0 +1,33 @@
+---
+- name: "add grafana keyring"
+  copy:
+    src: "grafana.gpg"
+    dest: "{{ grafana_keyring }}"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: "add grafana repository"
+  apt_repository:
+    repo: "{{ grafana_repository }}"
+    state: present
+    mode: 644
+    update_cache: true
+
+- name: "install grafana alloy"
+  package:
+    name: "alloy"
+    state: present
+
+- name: "add alloy user to docker group"
+  ansible.builtin.user:
+    name: "alloy"
+    groups:
+      - "docker"
+    append: true
+
+- name: "start grafana alloy service"
+  service:
+    name: "alloy"
+    enabled: yes
+    state: started

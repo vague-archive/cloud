@@ -1,0 +1,90 @@
+name: Deploy to AWS
+
+on:
+  workflow_call:
+    secrets:
+      DOCKER_REGISTRY_TOKEN:
+        required: true
+      SSH_PRIVATE_KEY:
+        required: true
+      SSH_KNOWN_HOSTS:
+        required: true
+      PRODUCTION_ENCRYPT_KEY:
+        required: true
+      PRODUCTION_SIGNING_KEY:
+        required: true
+      PRODUCTION_DATABASE_URL:
+        required: true
+      PRODUCTION_REDIS_CACHE_URL:
+        required: true
+      PRODUCTION_REDIS_WORKERS_URL:
+        required: true
+      PRODUCTION_GITHUB_CLIENT_ID:
+        required: true
+      PRODUCTION_GITHUB_CLIENT_SECRET:
+        required: true
+      PRODUCTION_GITHUB_ACCESS_TOKEN:
+        required: true
+      PRODUCTION_DISCORD_CLIENT_ID:
+        required: true
+      PRODUCTION_DISCORD_CLIENT_SECRET:
+        required: true
+      PRODUCTION_AWS_ACCESS_KEY_ID:
+        required: true
+      PRODUCTION_AWS_SECRET_KEY:
+        required: true
+      PRODUCTION_POSTMARK_API_TOKEN:
+        required: true
+      PRODUCTION_PAPERTRAIL_TOKEN:
+        required: true
+
+env:
+  DOCKER_REGISTRY_TOKEN:            ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+  PRODUCTION_ENCRYPT_KEY:           ${{ secrets.PRODUCTION_ENCRYPT_KEY }}
+  PRODUCTION_SIGNING_KEY:           ${{ secrets.PRODUCTION_SIGNING_KEY }}
+  PRODUCTION_DATABASE_URL:          ${{ secrets.PRODUCTION_DATABASE_URL }}
+  PRODUCTION_REDIS_CACHE_URL:       ${{ secrets.PRODUCTION_REDIS_CACHE_URL }}
+  PRODUCTION_REDIS_WORKERS_URL:     ${{ secrets.PRODUCTION_REDIS_WORKERS_URL }}
+  PRODUCTION_GITHUB_CLIENT_ID:      ${{ secrets.PRODUCTION_GITHUB_CLIENT_ID }}
+  PRODUCTION_GITHUB_CLIENT_SECRET:  ${{ secrets.PRODUCTION_GITHUB_CLIENT_SECRET }}
+  PRODUCTION_GITHUB_ACCESS_TOKEN:   ${{ secrets.PRODUCTION_GITHUB_ACCESS_TOKEN }}
+  PRODUCTION_DISCORD_CLIENT_ID:     ${{ secrets.PRODUCTION_DISCORD_CLIENT_ID }}
+  PRODUCTION_DISCORD_CLIENT_SECRET: ${{ secrets.PRODUCTION_DISCORD_CLIENT_SECRET }}
+  PRODUCTION_AWS_ACCESS_KEY_ID:     ${{ secrets.PRODUCTION_AWS_ACCESS_KEY_ID }}
+  PRODUCTION_AWS_SECRET_KEY:        ${{ secrets.PRODUCTION_AWS_SECRET_KEY }}
+  PRODUCTION_POSTMARK_API_TOKEN:    ${{ secrets.PRODUCTION_POSTMARK_API_TOKEN }}
+  PRODUCTION_PAPERTRAIL_TOKEN:      ${{ secrets.PRODUCTION_PAPERTRAIL_TOKEN }}
+
+jobs:
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-cloud-to-aws
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.3.5
+          bundler-cache: true
+
+      - name: Install dependencies
+        run: |
+          gem install kamal -v 2.1.2
+
+      - name: Enable SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add SSH known hosts for production servers
+        run: |
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy using Kamal
+        run: cd deploy/aws && kamal deploy -c kamal.yml -P

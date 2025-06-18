@@ -1,0 +1,14 @@
+---
+- name: configure firewall ports
+  community.general.ufw:
+    port:    "{{ item.port }}"
+    rule:    "{{ item.rule  | default('allow') }}"
+    proto:   "{{ item.proto | default('tcp')   }}"
+    from_ip: "{{ item.from  | default('any')   }}"
+    to_ip:   "{{ item.to    | default('any')   }}"
+  with_items: "{{ ufw_rules }}"
+
+- name: configure firewall
+  ufw:
+    policy: deny
+    state: enabled

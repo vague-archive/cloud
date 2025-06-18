@@ -1,0 +1,103 @@
+{
+  "tasks": {
+    "dev": "deno run -A --unstable-hmr cmd/dev.ts",
+    "console": "deno repl -A --eval-file=cmd/console.ts",
+    "test": "LOG_LEVEL=silent deno test -A --reporter=dot --location=http://localhost/test",
+    "test:loudly": "LOG_LEVEL=debug deno test -A --location=http://localhost/test",
+    "lint": "deno lint",
+    "check": "deno check cmd/**/*.ts src/**/*.ts",
+    "cache": "deno cache cmd/**/*.ts src/**/*.ts",
+    "db": "deno run -A cmd/database.ts",
+    "exec": "deno run -A cmd/task.ts",
+    "build": "deno task exec build",
+    "image": "bin/docker/build"
+  },
+  "imports": {
+
+    "@std/archive": "jsr:@std/archive@^0.224.3",
+    "@std/assert": "jsr:@std/assert@^1.0.2",
+    "@std/async": "jsr:@std/async@^1.0.2",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.0",
+    "@std/encoding": "jsr:@std/encoding@^1.0.1",
+    "@std/fs": "jsr:@std/fs@^1.0.1",
+    "@std/io": "jsr:@std/io@^0.224.4",
+    "@std/jsonc": "jsr:@std/jsonc@^1.0.0",
+    "@std/media-types": "jsr:@std/media-types@^1.0.2",
+    "@std/path": "jsr:@std/path@^1.0.2",
+    "@std/ulid": "jsr:@std/ulid@^1.0.0",
+
+    "@lib": "./src/lib.ts",
+    "@lib/array": "./src/lib/array.ts",
+    "@lib/assert": "./src/lib/assert.ts",
+    "@lib/aws": "./src/lib/aws.ts",
+    "@lib/crypto": "./src/lib/crypto.ts",
+    "@lib/clock": "./src/lib/clock.ts",
+    "@lib/discord": "./src/lib/discord.ts",
+    "@lib/filestore": "./src/lib/filestore.ts",
+    "@lib/format": "./src/lib/format.ts",
+    "@lib/github": "./src/lib/github.ts",
+    "@lib/html": "./src/lib/html.ts",
+    "@lib/http": "./src/lib/http.ts",
+    "@lib/i18n": "./src/lib/i18n.ts",
+    "@lib/is": "./src/lib/is.ts",
+    "@lib/jsx": "./src/lib/jsx.ts",
+    "@lib/kvstore": "./src/lib/kvstore.ts",
+    "@lib/logger": "./src/lib/logger.ts",
+    "@lib/params": "./src/lib/params.ts",
+    "@lib/route": "./src/lib/route.ts",
+    "@lib/serialize": "./src/lib/serialize.ts",
+    "@lib/stream": "./src/lib/stream.ts",
+    "@lib/to": "./src/lib/to.ts",
+    "@lib/validation": "./src/lib/validation.ts",
+
+    "@config": "./src/config.ts",
+    "@db": "./src/db.ts",
+    "@db/migration": "./src/db/migration.ts",
+    "@db/schema": "./src/db/schema.ts",
+    "@db/plugin/": "./src/db/plugin/",
+    "@deps": "./src/deps.ts",
+    "@domain": "./src/domain.ts",
+    "@file": "./src/file.ts",
+    "@mail": "./src/mail.ts",
+    "@minions": "./src/minions.ts",
+    "@task": "./src/task.ts",
+    "@test": "./src/test.ts",
+    "@web": "./src/web.ts",
+    "@web/action/": "./src/web/action/",
+    "@web/component": "./src/web/component.ts",
+    "@web/middleware/": "./src/web/middleware/",
+    "@web/page/": "./src/web/page/",
+    "@web/router": "./src/web/router.ts",
+    "@web/download": "./src/web/download.ts",
+    "@web/": "./src/web/",
+
+    "@vaguevoid/design-system/preset": "https://esm.void.dev/@vaguevoid/design-system@0.0.56/preset?target=es2022",
+    "@vaguevoid/design-system/components": "https://esm.void.dev/@vaguevoid/design-system@0.0.56/components?target=es2022",
+    "@vaguevoid/design-system/base.css": "https://esm.void.dev/@vaguevoid/design-system@0.0.56/src/base.css",
+    "@vaguevoid/design-system/components.css": "https://esm.void.dev/@vaguevoid/design-system@0.0.56/src/components.css",
+    "@vaguevoid/design-system/utilities.css": "https://esm.void.dev/@vaguevoid/design-system@0.0.56/src/utilities.css",
+
+    "preact": "npm:preact@10.24.1", // KEEP IN SYNC WITH lib/jsx.ts
+    "preact/render": "npm:preact-render-to-string@6.5.11/jsx"
+  },
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.unstable", "dom", "dom.iterable"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  },
+  "lint": {
+    "rules": {
+      "tags": [
+        "recommended"
+      ]
+    },
+    "exclude": ["deploy", "public", "README.md", "TODO.md", ".filestore"]
+  },
+  "fmt": {
+    "indentWidth": 2,
+    "lineWidth": 120,
+    "semiColons": false,
+    "singleQuote": false,
+    "exclude": [""] // DONT use deno fmt any more ["deploy", "public", ".filestore", "**/*.md"],
+  }
+}

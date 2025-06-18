@@ -1,0 +1,9 @@
+---
+- name: harden sshd configuration
+  template:
+    src: "sshd_config"
+    dest: "/etc/ssh/sshd_config.d/100-void-cloud.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart ssh

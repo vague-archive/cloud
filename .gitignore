@@ -1,0 +1,14 @@
+# dotenv environment files
+.env
+
+# dev filestore location
+.filestore
+
+# generated assets
+public/assets
+
+# build time cache
+.cache
+
+# npm dependencies
+node_modules/

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# THIS IS FOR DEVELOPMENT AND TESTING IF YOU WANT TO TEST RUNNING VIA OUR DOCKER IMAGE WITH
+# THE CORRECT NETWORK, YOUR .env FILE, AND A MOUNTED .filestore DIRECTORY
+
+CMD=${1:-web}
+
+case "$CMD" in
+  "web")
+    docker run -it --rm \
+      --network host \
+      --env-file .env \
+      ghcr.io/vaguevoid/cloud cmd/web.ts ;;
+
+  "files")
+    docker run -it --rm \
+      --network host \
+      --env-file .env \
+      -v ./.filestore:/app/filestore \
+      ghcr.io/vaguevoid/cloud cmd/files.ts ;;
+
+  "minions")
+    docker run -it --rm \
+      --network host \
+      --env-file .env \
+      ghcr.io/vaguevoid/cloud cmd/minions.ts ;;
+esac

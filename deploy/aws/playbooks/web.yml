@@ -1,0 +1,20 @@
+---
+- name: web
+  hosts: web
+  become: true
+  vars:
+    ufw_rules:
+      - { port: 22, from: "10.10.0.0/16", comment: 'ssh'  }
+      - { port: 80, from: "10.10.0.0/16", comment: 'http' }
+
+  roles:
+    - "common/apt"
+    - "common/ssh"
+    - "common/ufw"
+    - "common/hosts"
+    - "common/timezone"
+    - "common/motd"
+    - "common/users"
+    - "common/essentials"
+    - "common/docker"
+    - "grafana/alloy"

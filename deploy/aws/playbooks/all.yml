@@ -1,0 +1,4 @@
+---
+- import_playbook: operations.yml
+- import_playbook: web.yml
+- import_playbook: files.yml

@@ -1,0 +1,40 @@
+@import "@vaguevoid/design-system/base.css";
+@import "@vaguevoid/design-system/components.css";
+@import "@vaguevoid/design-system/utilities.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*=================================================================================================
+  BASE STYLES
+=================================================================================================*/
+
+@layer base {
+  [x-cloak] {
+    display: none !important;
+  }
+
+  code.unstyled {
+    @apply border-none bg-inherit; /* TODO: backport this to design system */
+  }
+}
+
+/*=================================================================================================
+  COMPONENT STYLES
+=================================================================================================*/
+
+@layer components {
+  field.horizontal {
+    @apply flex flex-row items-center gap-2;
+  }
+}
+
+/*=================================================================================================
+  UTILITY STYLES
+=================================================================================================*/
+
+@layer utilities {
+}
+
+/*===============================================================================================*/

@@ -1,0 +1,17 @@
+[operations]
+ops
+
+[web]
+web1
+web2
+
+[files]
+files
+
+[production:children]
+operations
+web
+files
+
+[production:vars]
+env=production

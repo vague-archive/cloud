@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+VERSION=${VERSION:-$(git show -s --format="%H")}
+
+docker build \
+  -t ghcr.io/vaguevoid/cloud:${VERSION} \
+  -f Dockerfile \
+  --label "service=cloud" \
+  --build-arg DENO_AUTH_TOKENS=${DENO_AUTH_TOKENS} \
+  ../..

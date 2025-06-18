@@ -1,0 +1,40 @@
+---
+- name: "add docker keyring"
+  copy:
+    src: "keyring.gpg"
+    dest: "{{ docker_keyring }}"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: "add docker repository"
+  apt_repository:
+    repo: "{{ docker_repository }}"
+    state: present
+    mode: 644
+    update_cache: true
+
+- name: "install docker-engine"
+  package:
+    name: "docker-ce"
+    state: present
+  with_items:
+    - "docker-ce"
+    - "docker-ce-cli"
+    - "containerd.io"
+    - "docker-buildx-plugin"
+    - "docker-compose-plugin"
+
+- name: "add users to docker group"
+  ansible.builtin.user:
+    name:   "{{ users[item].name }}"
+    groups:
+      - "docker"
+    append: true
+  with_items: "{{ users.enabled }}"
+
+- name: "start docker service"
+  service:
+    name: docker
+    enabled: yes
+    state: started

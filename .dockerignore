@@ -1,0 +1,16 @@
+deploy
+fly.toml
+README.md
+TODO.md
+Dockerfile
+
+.cache
+.filestore
+.git
+.github
+.env
+.env.*
+.gitignore
+.projections.json
+.tool-versions
+.dockerignore

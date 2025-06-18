@@ -1,0 +1,26 @@
+---
+users:
+  enabled:
+    - admin
+    - deploy
+    - jake
+
+  revoked: []
+
+  admin:
+    name:   admin
+    uid:    2000
+    sudo:   nopasswd
+    pubkey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCiWbfVhTb1tab+tjLwsUsgKS5G55iRR/b96KaJYNlUrtL7bE4yyFwtUU6Lp6eiYl7RJ+WmJ0IB6a6MiJmBui6eqI8P6Wzi0A0xljjw4YGIuNIo0k20/MsCXh7pm3LV4iD9Bc4LIXNeV3xl/PBBi46KDH+yXf3pYJXxXuHzwMDu6WM9fwE+u7DQF2adorsG3nrMVhow7JHNKEB31twEp0JUaIQlFyXb9E1j8zeMnmfZJegnyuQSc4+CQIPZbQgiFwNQWCA7TlmuIjaWrNsP8Pir5rsVzJNKtFn+qi6BPFd5O6Deb32ADxVJKpTbr7xE2f3Sg0AKrknp/aB01Nqyvhff
+
+  deploy:
+    name:   deploy
+    uid:    2001
+    sudo:   deploy
+    pubkey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCVTXQgOGiEbenv14J9TcQQLJzTmD4cU3vq1FWcKcHFNmDERWu4PnNBZZExYOIjSyEsuOeKxL6/V+YgKwwknGapUAVOsKaet+8b2Tspe41pgtIYKhIpcb632acTOrCvDCChH7d5HIaTN/2iAxoUp0D30zM7Cwn/pArKzgtgEYKaVEoiaX+DN44VTxt9FQpwUH55uHyhECsCE0CimD3x6unZ3naoqTOFvDsAAG69NV4F9fTdvgyN1sgc3VSPoFRplDQe3et1GA1HWKhCZHob0YM+rGKnRMYK7SN26t+7bcYtnTDCqFE7InZiQ35PlTVagsUePKRK/dKzS/WQ6qca+mFN
+
+  jake:
+    name:   jake
+    uid:    2002
+    sudo:   nopasswd
+    pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKjSp0E364s4ewKnD1wNe+VHXn2EZ2AQQ8GrJtTysJJf

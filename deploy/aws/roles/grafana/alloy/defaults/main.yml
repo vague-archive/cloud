@@ -1,0 +1,3 @@
+---
+grafana_keyring: "/etc/apt/keyrings/grafana.gpg"
+grafana_repository: "deb [arch=amd64 signed-by={{ grafana_keyring }}] https://apt.grafana.com stable main"

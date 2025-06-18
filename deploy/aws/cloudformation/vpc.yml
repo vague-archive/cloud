@@ -1,0 +1,590 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Provision the (legacy) void-cloud VPC (the deno version of play.void.dev)
+
+Mappings:
+  config:
+    vpc:
+      region:  us-west-2
+      zone1:   us-west-2a
+      zone2:   us-west-2b
+      keyname: void-cloud-admin
+    cidr:
+      vpc:          10.10.0.0/16
+      publiczone1:  10.10.1.0/24
+      publiczone2:  10.10.2.0/24
+      privatezone1: 10.10.10.0/24
+      privatezone2: 10.10.20.0/24
+    ip:
+      nat1:      10.10.1.99
+      nat2:      10.10.2.99
+      opspublic: 10.10.1.5
+      ops:       10.10.10.5
+      web1:      10.10.10.10
+      web2:      10.10.20.10
+      files:     10.10.10.200
+    ops:
+      ami:          ami-04dd23e62ed049936
+      instancetype: t3.small
+      ebsoptimized: false
+    web:
+      ami:          ami-04dd23e62ed049936
+      instancetype: t3.small
+      ebsoptimized: false
+    files:
+      ami:              ami-04dd23e62ed049936
+      instancetype:     t3.small
+      ebsoptimized:     true
+      volumetype:       gp3
+      volumesize:       128
+      volumeiops:       3000
+      volumethroughput: 125
+    cache:
+      engine: redis
+      family: redis7
+      type: cache.t2.small
+      version: 7.1
+      nodes: 1
+
+Parameters:
+  EnvName:
+    Description: Environment name
+    Type: String
+    Default: void-cloud
+  OpsEipAllocationId:
+    Description: Elastic IP (EIP) allocation for ops
+    Type: String
+    Default: eipalloc-043cff02c750d92bc
+  SSLCertificateArn:
+    Description: SSL certificate for ALB https listener
+    Type: String
+    Default: arn:aws:acm:us-west-2:339712894694:certificate/72e1acfc-38d1-4736-833a-9bdf23785a22
+
+Resources:
+  gateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, gateway ] ]
+
+  vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !FindInMap [ config, cidr, vpc ]
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, vpc ] ]
+
+  vpcgateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref gateway
+      VpcId: !Ref vpc
+
+  dhcpoptions:
+    Type: AWS::EC2::DHCPOptions
+    Properties:
+      DomainName: us-west-2.compute.internal
+      DomainNameServers:
+        - AmazonProvidedDNS
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, dhcp-options ] ]
+
+  vpcdhcpoptions:
+    Type: AWS::EC2::VPCDHCPOptionsAssociation
+    Properties:
+      DhcpOptionsId: !Ref dhcpoptions
+      VpcId: !Ref vpc
+
+  publicsubnetzone1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock:        !FindInMap [ config, cidr, publiczone1 ]
+      AvailabilityZone: !FindInMap [ config, vpc,  zone1 ]
+      VpcId: !Ref vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, public-subnet-zone1 ] ]
+
+  publicsubnetzone2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock:        !FindInMap [ config, cidr, publiczone2 ]
+      AvailabilityZone: !FindInMap [ config, vpc,  zone2 ]
+      VpcId: !Ref vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, public-subnet-zone2 ] ]
+
+  privatesubnetzone1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock:        !FindInMap [ config, cidr, privatezone1 ]
+      AvailabilityZone: !FindInMap [ config, vpc,  zone1 ]
+      VpcId: !Ref vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, private-subnet-zone1 ] ]
+
+  privatesubnetzone2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock:        !FindInMap [ config, cidr, privatezone2 ]
+      AvailabilityZone: !FindInMap [ config, vpc,  zone2 ]
+      VpcId: !Ref vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, private-subnet-zone2 ] ]
+
+  publicroutetable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, public-routetable ] ]
+
+  privateroutetablezone1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, private-routetable-zone1 ] ]
+
+  privateroutetablezone2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, private-routetable-zone2 ] ]
+
+  publicroutetablesubnetzone1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref publicroutetable
+      SubnetId: !Ref publicsubnetzone1
+
+  publicroutetablesubnetzone2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref publicroutetable
+      SubnetId: !Ref publicsubnetzone2
+
+  privateroutetablesubnetzone1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref privateroutetablezone1
+      SubnetId: !Ref privatesubnetzone1
+
+  privateroutetablesubnetzone2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref privateroutetablezone2
+      SubnetId: !Ref privatesubnetzone2
+
+  publicroutetointernet:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref publicroutetable
+      GatewayId: !Ref gateway
+
+  privateroutetointernetzone1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref privateroutetablezone1
+      NatGatewayId: !Ref natgatewayzone1
+
+  privateroutetointernetzone2:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref privateroutetablezone2
+      NatGatewayId: !Ref natgatewayzone2
+
+  nateipzone1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, nat-eip-zone1 ] ]
+    DependsOn: vpcgateway
+
+  nateipzone2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, nat-eip-zone2 ] ]
+    DependsOn: vpcgateway
+
+  natgatewayzone1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt nateipzone1.AllocationId
+      ConnectivityType: public
+      PrivateIpAddress: !FindInMap [ config, ip, nat1 ]
+      SubnetId: !Ref publicsubnetzone1
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, nat-gateway-zone1 ] ]
+
+  natgatewayzone2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt nateipzone2.AllocationId
+      ConnectivityType: public
+      PrivateIpAddress: !FindInMap [ config, ip, nat2 ]
+      SubnetId: !Ref publicsubnetzone2
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, nat-gateway-zone2 ] ]
+
+  loadbalancersecuritygroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref vpc
+      GroupDescription: Load Balancer Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, loadbalancer-securitygroup ] ]
+
+  loadbalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: network
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      SecurityGroups:
+        - !Ref loadbalancersecuritygroup
+      Subnets:
+        - !Ref publicsubnetzone1
+        - !Ref publicsubnetzone2
+      Name: !Join [ '-', [ !Ref EnvName, loadbalancer ] ]
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, loadbalancer ] ]
+
+  httpslistener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref loadbalancer
+      Protocol: TLS # terminate TLS at the NLB
+      Port: 443
+      Certificates:
+        - CertificateArn: !Ref SSLCertificateArn
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref targetgroup
+
+  targetgroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthCheckPath: /ping
+      HealthCheckPort: 80
+      HealthCheckProtocol: HTTP
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Protocol: TCP
+      Port: 80
+      VpcId: !Ref vpc
+      TargetType: instance
+      Targets:
+        - Id: !Ref web1
+        - Id: !Ref web2
+      Name: !Join [ '-', [ !Ref EnvName, targetgroup ] ]
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, targetgroup ] ]
+
+  publicsecuritygroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref vpc
+      GroupDescription: Load Balancer Security Group
+      SecurityGroupIngress:
+        - IpProtocol: icmp
+          FromPort: '-1'
+          ToPort: '-1'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, public-securitygroup ] ]
+
+  privatesecuritygroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref vpc
+      GroupDescription: Private Security Group
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, private-securitygroup ] ]
+
+  privatesecuritygroupingress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref privatesecuritygroup
+      IpProtocol: '-1'
+      FromPort: '-1'
+      ToPort: '-1'
+      SourceSecurityGroupId: !Ref privatesecuritygroup
+
+  opspublicinterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      GroupSet:
+        - !Ref publicsecuritygroup
+      SubnetId: !Ref publicsubnetzone1
+      PrivateIpAddress: !FindInMap [ config, ip, opspublic ]
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, ops-public-interface ] ]
+
+  opsprivateinterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      GroupSet:
+        - !Ref privatesecuritygroup
+      SubnetId: !Ref privatesubnetzone1
+      PrivateIpAddress: !FindInMap [ config, ip, ops ]
+      SourceDestCheck: 'false'
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, ops-private-interface ] ]
+
+  opseipassociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !Ref OpsEipAllocationId
+      PrivateIpAddress: !FindInMap [ config, ip, opspublic ]
+      NetworkInterfaceId: !Ref opspublicinterface
+
+  ops:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !FindInMap [ config, vpc, zone1 ]
+      KeyName:          !FindInMap [ config, vpc, keyname ]
+      ImageId:          !FindInMap [ config, ops, ami ]
+      InstanceType:     !FindInMap [ config, ops, instancetype ]
+      EbsOptimized:     !FindInMap [ config, ops, ebsoptimized ]
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref opspublicinterface
+          DeviceIndex: '0'
+        - NetworkInterfaceId: !Ref opsprivateinterface
+          DeviceIndex: '1'
+      UserData:
+        Fn::Base64: !Sub |
+          #cloud-config
+          hostname: ops
+          write_files:
+          - path: /etc/netplan/60-zones.yaml
+            permissions: 0600
+            content: |
+              network:
+                version: 2
+                ethernets:
+                  ens6:
+                    routes:
+                    - to: 10.10.20.0/24
+                      via: 10.10.10.1
+          runcmd:
+            - netplan apply
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, ops ] ]
+
+  filesprivateinterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      GroupSet:
+        - !Ref privatesecuritygroup
+      SubnetId: !Ref privatesubnetzone1
+      PrivateIpAddress: !FindInMap [ config, ip, files ]
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, files-private-interface ] ]
+
+  filesdatavolume:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone: !FindInMap [ config, vpc,   zone1 ]
+      VolumeType:       !FindInMap [ config, files, volumetype ]
+      Size:             !FindInMap [ config, files, volumesize ]
+      Iops:             !FindInMap [ config, files, volumeiops ]
+      Throughput:       !FindInMap [ config, files, volumethroughput ]
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, files-data-volume ] ]
+
+  filesdatavolumeattachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device: /dev/sdh
+      InstanceId: !Ref files
+      VolumeId: !Ref filesdatavolume
+
+  files:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !FindInMap [ config, vpc,   zone1 ]
+      KeyName:          !FindInMap [ config, vpc,   keyname ]
+      ImageId:          !FindInMap [ config, files, ami ]
+      InstanceType:     !FindInMap [ config, files, instancetype ]
+      EbsOptimized:     !FindInMap [ config, files, ebsoptimized ]
+      UserData:
+        Fn::Base64: !Sub |
+          #cloud-config
+          hostname: files
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref filesprivateinterface
+          DeviceIndex: '0'
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, files ] ]
+
+  websecuritygroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref vpc
+      GroupDescription: Web Security Group
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, web-securitygroup ] ]
+
+  websecuritygroupingress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref websecuritygroup
+      IpProtocol: tcp
+      FromPort: '80'
+      ToPort: '80'
+      SourceSecurityGroupId: !Ref loadbalancersecuritygroup
+
+  web1privateinterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      GroupSet:
+        - !Ref websecuritygroup
+        - !Ref privatesecuritygroup
+      SubnetId: !Ref privatesubnetzone1
+      PrivateIpAddress: !FindInMap [ config, ip, web1 ]
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, web1-private-interface ] ]
+
+  web2privateinterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      GroupSet:
+        - !Ref websecuritygroup
+        - !Ref privatesecuritygroup
+      SubnetId: !Ref privatesubnetzone2
+      PrivateIpAddress: !FindInMap [ config, ip, web2 ]
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, web2-private-interface ] ]
+
+  web1:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !FindInMap [ config, vpc, zone1 ]
+      KeyName:          !FindInMap [ config, vpc, keyname ]
+      ImageId:          !FindInMap [ config, web, ami ]
+      InstanceType:     !FindInMap [ config, web, instancetype ]
+      EbsOptimized:     !FindInMap [ config, web, ebsoptimized ]
+      UserData:
+        Fn::Base64: !Sub |
+          #cloud-config
+          hostname: web1
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref web1privateinterface
+          DeviceIndex: '0'
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, web1 ] ]
+
+  web2:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: !FindInMap [ config, vpc, zone2 ]
+      KeyName:          !FindInMap [ config, vpc, keyname ]
+      ImageId:          !FindInMap [ config, web, ami ]
+      InstanceType:     !FindInMap [ config, web, instancetype ]
+      EbsOptimized:     !FindInMap [ config, web, ebsoptimized ]
+      UserData:
+        Fn::Base64: !Sub |
+          #cloud-config
+          hostname: web2
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref web2privateinterface
+          DeviceIndex: '0'
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, web2 ] ]
+
+  #========================================
+  # ElastiCache REDIS instance for cache
+  #========================================
+
+  cacheparametergroup:
+    Type: AWS::ElastiCache::ParameterGroup
+    DeletionPolicy: RetainExceptOnCreate
+    Properties:
+      Description: "Cache Configuration"
+      CacheParameterGroupFamily: !FindInMap [ config, cache, family ]
+      Properties:
+        maxmemory-policy: "noeviction"   # required for BullMQ
+        notify-keyspace-events: "AKE"    # enable REDIS pubsub
+
+  cachesubnetgroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    DeletionPolicy: RetainExceptOnCreate
+    Properties:
+      Description: "Cache Subnet Group"
+      SubnetIds:
+        - !Ref privatesubnetzone1
+        - !Ref privatesubnetzone2
+
+  cache:
+    Type: AWS::ElastiCache::CacheCluster
+    DeletionPolicy: RetainExceptOnCreate
+    Properties:
+      CacheParameterGroupName:    !Ref cacheparametergroup
+      CacheSubnetGroupName:       !Ref cachesubnetgroup
+      ClusterName:                !Join [ '-', [ !Ref EnvName, cache ] ]
+      CacheNodeType:              !FindInMap [ config, cache, type ]
+      Engine:                     !FindInMap [ config, cache, engine ]
+      EngineVersion:              !FindInMap [ config, cache, version ]
+      NumCacheNodes:              !FindInMap [ config, cache, nodes ]
+      PreferredMaintenanceWindow: "sun:05:00-sun:09:00"
+      VpcSecurityGroupIds:
+        - !Ref privatesecuritygroup
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref EnvName, cache ] ]

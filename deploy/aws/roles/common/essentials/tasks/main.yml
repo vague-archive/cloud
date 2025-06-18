@@ -1,0 +1,20 @@
+---
+- name: install essential packages
+  apt:
+    pkg: "{{ item }}"
+    state: present
+    update_cache: no
+  with_items:
+    - htop
+    - traceroute
+    - curl
+    - vim
+    - git
+    - ripgrep      # a better grep
+    - httpie       # a better curl
+    - fd-find      # a better find
+    - jq           # sed, but for json
+    - duf          # disk space
+    - redis-tools  # redis-cli
+    - mysql-client # mysql client
+    - bpytop       # a (more) fancy visual htop

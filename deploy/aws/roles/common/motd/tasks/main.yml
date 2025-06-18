@@ -1,0 +1,14 @@
+---
+- name: motd
+  template:
+    src: "{{ item }}"
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: 0644
+  with_first_found:
+    - files:
+        - "motd.{{ env }}"
+        - "motd"
+      paths:
+        - "../templates"

@@ -1,0 +1,3 @@
+---
+docker_keyring: "/etc/apt/keyrings/docker.gpg"
+docker_repository: "deb [arch=amd64 signed-by={{ docker_keyring }}] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"

@@ -1,0 +1,57 @@
+
+name: Void Cloud CI Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  TEST_DATABASE_URL: mysql://root:void@database:3306/void
+  REDIS_TEST_URL: redis://redis:6379/0
+  DENO_AUTH_TOKENS: ${{ secrets.DENO_AUTH_TOKENS }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: denoland/deno:ubuntu-1.46.3
+
+    services:
+      database:
+        image: mysql:8.3.0
+        env:
+          MYSQL_DATABASE: void
+          MYSQL_ROOT_PASSWORD: void
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      redis:
+        image: redis:7.2
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: "checkout"
+      uses: actions/checkout@v3
+    - name: "install dependencies"
+      run: |
+        apt update
+        apt install -y default-mysql-client
+    - name: "verify database connection"
+      run: mysql --user=root --password=void --host=database -e "show databases"
+    - name: "migrate database"
+      run: deno task db migrate test
+    - name: "load fixtures"
+      run: deno task db fixtures test
+    - name: "run tests"
+      run: deno task test
+    - name: "run linter"
+      run: deno lint
+    - name: "run build"
+      run: deno task build

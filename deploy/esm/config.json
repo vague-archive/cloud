@@ -1,0 +1,5 @@
+{
+  "npmRegistry": "https://npm.pkg.github.com/",
+  "npmRegistryScope": "@vaguevoid",
+  "logLevel": "debug"
+}
